@@ -265,7 +265,7 @@ def sparse_flash_forward(Q, K, V, q_row_offsets, q_col_indices,
     V_flat = V.reshape(BH, T, d)
 
     # initialize output matrices
-    O_flat = torch.zeros((BH, T, d), device = Q.device, dtype = torch.float32)
+    O_flat = torch.zeros((BH, T, d), device = Q.device, dtype = torch.float16)
     L_flat = torch.zeros((BH, T), device = Q.device, dtype = torch.float32)
 
     # grid size
@@ -400,7 +400,7 @@ def _sparse_flash_backward_dq_helper(Q_ptr, K_ptr, V_ptr, O_ptr, L_ptr, D_ptr,
 
         # update accumulator
         acc += tl.dot(dS, K)*sm_scale
-    
+
     # convert output to fp16
     acc = acc.to(tl.float16)
     
@@ -504,11 +504,11 @@ def _sparse_flash_backward_dkdv_helper(Q_ptr, K_ptr, V_ptr, O_ptr, L_ptr, D_ptr,
 
         # update dk accumulator
         dk_acc += tl.dot(dST, Q)*sm_scale
-    
-    # convert outputs to correct type
+
+    # convert outputs to fp16
     dk_acc = dk_acc.to(tl.float16)
     dv_acc = dv_acc.to(tl.float16)
-
+    
     tl.store(dK_ptr + K_offs, dk_acc, mask = K_mask)
     tl.store(dV_ptr + V_offs, dv_acc, mask = V_mask)
 
@@ -552,9 +552,9 @@ def sparse_flash_backward(Q, K, V, O, L, dO,
     D = torch.zeros((BH, T), device = Q.device, dtype = torch.float32)
 
     # initialize output matrices
-    dQ_flat = torch.zeros((BH, T, d), device = Q.device, dtype = torch.float32)
-    dK_flat = torch.zeros((BH, T, d), device = K.device, dtype = torch.float32)
-    dV_flat = torch.zeros((BH, T, d), device = V.device, dtype = torch.float32)
+    dQ_flat = torch.zeros((BH, T, d), device = Q.device, dtype = torch.float16)
+    dK_flat = torch.zeros((BH, T, d), device = K.device, dtype = torch.float16)
+    dV_flat = torch.zeros((BH, T, d), device = V.device, dtype = torch.float16)
 
     # grid size
     grid = (BH, triton.cdiv(T, BLOCK_Q))
