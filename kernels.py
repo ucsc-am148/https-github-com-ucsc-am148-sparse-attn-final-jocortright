@@ -225,6 +225,10 @@ def _sparse_flash_forward_helper(Q_ptr, K_ptr, V_ptr, O_ptr, L_ptr, bh_stride,
     l_mask = l_offs < T
     L_offs = bh_pid*l_stride + l_offs
     L_mask = l_mask
+
+    # convert outputs to correct type
+    O = O.to(tl.float16)
+    L = L.to(tl.float32)
     
     # store
     tl.store(O_ptr + O_offs, O, mask = O_mask)
@@ -397,6 +401,9 @@ def _sparse_flash_backward_dq_helper(Q_ptr, K_ptr, V_ptr, O_ptr, L_ptr, D_ptr,
         # update accumulator
         acc += tl.dot(dS, K)*sm_scale
     
+    # convert output to fp16
+    acc = acc.to(tl.float16)
+    
     tl.store(dQ_ptr + Q_offs, acc, mask = Q_mask)
 
 @triton.jit
@@ -498,6 +505,10 @@ def _sparse_flash_backward_dkdv_helper(Q_ptr, K_ptr, V_ptr, O_ptr, L_ptr, D_ptr,
         # update dk accumulator
         dk_acc += tl.dot(dST, Q)*sm_scale
     
+    # convert outputs to correct type
+    dk_acc = dk_acc.to(tl.float16)
+    dv_acc = dv_acc.to(tl.float16)
+
     tl.store(dK_ptr + K_offs, dk_acc, mask = K_mask)
     tl.store(dV_ptr + V_offs, dv_acc, mask = V_mask)
 
